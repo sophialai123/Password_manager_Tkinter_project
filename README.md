@@ -1,15 +1,11 @@
-# Password_manager_Tkinter_project
-"""
-https://tkdocs.com/tutorial/canvas.html
-https://tkdocs.com/tutorial/widgets.html#entry
-https://www.w3schools.com/python/python_file_write.asp
-https://pypi.org/project/pyperclip/
-"""
+# Password Manager Tkinter project
 import tkinter
 from tkinter import *  # all the tkinter class
 from tkinter import messagebox
 from random import choice, randint, shuffle
 import pyperclip
+import json
+
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 def generate_password():
     letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
@@ -39,27 +35,74 @@ def save():
     website = web_input.get()
     email = user_input.get()
     password = password_input.get()
+    # create a new dict to store json data:
+    new_data = {
+        website: {"Email": email,
+                  "Password": password
+        }
+
+    }
 
     #if any fields are empty, showinfo
     if len(website) == 0 or len(password) == 0:
         messagebox.showinfo(title="Opps", message="Please make sure you have not left any fields empty.")
     else:
-        # show message pop_ups
-        # messagebox.showinfo(title="Title", message="Message")
-        is_ok = messagebox.askokcancel(title=website,
-                                       message=f"These are the details are entered: Email:{email}"
-                                               f"\n Password:{password}\n Is that ok to save? ")
-        # if is_ok is ture, all the input information will be added into a file, if is_ok is false, it will not be added
-        if is_ok:
+        try:
             # create a new file, if the file doest not exist, will create it for you,
-            with open("my_password_info.txt", "a") as my_password_data:
-                # write all the data into a file:
-                my_password_data.write(f"{website} | {email} | {password}\n")
-                # delete all the entries once it finished, so will be ready for next
-                web_input.delete(0, END)  # delete the from first to the last
-                user_input.delete(0, END)
-                password_input.delete(0, END)
-                user_input.insert(0, "sophiacodes@yooho.com") # the email stays the same
+            with open("my_password_info.json", "r") as my_password_data:
+                # how to read json file:
+                data = json.load(my_password_data) # dict type
+        #cathch an error:
+        except FileNotFoundError:
+            #if the file does not exist, will create a new one
+            with open ("my_password_info.json", "w") as my_password_data:
+                # how to use json to write the data and saving updated the data
+                # first input is data and second input is file name, indent will have better format
+                json.dump(new_data, my_password_data, indent=4)
+
+        else: # ONLY if  try statement block of codes are True, the file found, this will be executed.
+            # how to use json to update the data, first read the data,
+            data.update(new_data)
+            with open("my_password_info.json",'w') as my_password_data:
+            # how to use json to write the data and saving updated the data
+                json.dump(data, my_password_data, indent=4)
+
+        finally:
+            # delete all the entries once it finished, so will be ready for next
+            web_input.delete(0, END)  # delete the from first to the last
+            #user_input.delete(0, END)
+            password_input.delete(0, END)
+
+
+
+# ---------------------------- FIND PASSWORD ------------------------------- #
+def find_password():
+    # to get email and password values:
+    website = web_input.get()
+
+    # to catch errors:
+    try:
+        with open("my_password_info.json", 'r') as my_password_data:
+            # read the file
+            data = json.load(my_password_data)  # data is nested dict
+
+    except FileNotFoundError:
+        # show an error pop-ups
+        messagebox.showinfo(title="Error", message="Sorry, No Data File Found.")
+
+    else:
+        # check if user's entry matches an item in Json's file
+        if website in data:
+            # to email and password value form nested dict
+            email = data[website]["Email"]
+            password = data [website]["Password"]
+            # to updated the title and pop-ups:
+            messagebox.showinfo(title=f"{website}", message=f" Email: {email}\n "
+                                                    f"Password: {password}\n")
+        # if user's details are not exist.
+        else:
+            messagebox.showinfo(title="Error", message=F"No details for {website} exists")
+
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -91,7 +134,6 @@ web_label = Label(text="Website:")
 web_label.grid(column=0, row=1)
 
 
-
 user_label = Label(text="Email/Username:")
 user_label.grid(column=0, row=2)
 
@@ -99,12 +141,13 @@ password_label = Label(text="Password:")
 password_label.grid(column=0, row=3)
 
 #create input entries and grid layout:
-web_input = Entry(width=35)
-web_input.grid(column=1, row=1,columnspan=2)
+web_input = Entry(width=21)
+web_input.grid(column=1, row=1)
 
 #show the first input
 web_input.focus()
 
+# add columnspan
 user_input = Entry(width=35)
 user_input.grid(column=1, row=2,columnspan=2)
 
@@ -112,15 +155,19 @@ user_input.grid(column=1, row=2,columnspan=2)
 user_input.insert(0, "sophiacodes@yooho.com")  # 0index is the first character, END is the very last charater
 
 password_input = Entry(width=21)
-# add columnspan
+
 password_input.grid(column=1, row=3)
 
-#create a button and grid layout:
+#create buttons and grid layout:
 password_button = Button(text="Generate Password", command=generate_password)  # call the function
 password_button.grid(column=2, row=3)
 
-add_button = Button(text="Add",width=36, command=save) # command to call the function
+add_button = Button(text="Add",width=36, command=save) # command to call the save() function
 add_button.grid(column=1, row=4,columnspan=2)
+
+search_button = Button(text="Search",width=13, command=find_password) #command to call the function
+search_button.grid(column=2, row=1)
 
 #keep the window open
 window.mainloop()
+
